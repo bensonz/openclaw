@@ -45,6 +45,24 @@ export class ChatLog extends Container {
     this.pruneOverflow();
   }
 
+  /**
+   * Insert a component before the current streaming assistant message.
+   * Falls back to regular append if no streaming assistant exists.
+   */
+  private insertBeforeStreamingAssistant(component: Component, runId?: string) {
+    const effectiveRunId = this.resolveRunId(runId);
+    const assistant = this.streamingRuns.get(effectiveRunId);
+    if (assistant) {
+      const idx = this.children.indexOf(assistant);
+      if (idx !== -1) {
+        this.children.splice(idx, 0, component);
+        this.pruneOverflow();
+        return;
+      }
+    }
+    this.append(component);
+  }
+
   clearAll() {
     this.clear();
     this.toolById.clear();
@@ -102,7 +120,7 @@ export class ChatLog extends Container {
     this.streamingRuns.delete(effectiveRunId);
   }
 
-  startTool(toolCallId: string, toolName: string, args: unknown) {
+  startTool(toolCallId: string, toolName: string, args: unknown, runId?: string) {
     const existing = this.toolById.get(toolCallId);
     if (existing) {
       existing.setArgs(args);
@@ -111,7 +129,7 @@ export class ChatLog extends Container {
     const component = new ToolExecutionComponent(toolName, args);
     component.setExpanded(this.toolsExpanded);
     this.toolById.set(toolCallId, component);
-    this.append(component);
+    this.insertBeforeStreamingAssistant(component, runId);
     return component;
   }
 
