@@ -3,7 +3,7 @@ import { TuiStreamAssembler } from "./tui-stream-assembler.js";
 import type { AgentEvent, ChatEvent, TuiStateAccess } from "./tui-types.js";
 
 type EventHandlerChatLog = {
-  startTool: (toolCallId: string, toolName: string, args: unknown) => void;
+  startTool: (toolCallId: string, toolName: string, args: unknown, runId?: string) => void;
   updateToolResult: (
     toolCallId: string,
     result: unknown,
@@ -260,7 +260,7 @@ export function createEventHandlers(context: EventHandlerContext) {
         return;
       }
       if (phase === "start") {
-        chatLog.startTool(toolCallId, toolName, data.args);
+        chatLog.startTool(toolCallId, toolName, data.args, evt.runId);
       } else if (phase === "update") {
         if (!allowToolOutput) {
           return;
