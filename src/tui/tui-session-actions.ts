@@ -299,16 +299,21 @@ export function createSessionActions(context: SessionActionContext) {
       const showTools = (state.sessionInfo.verboseLevel ?? "off") !== "off";
       chatLog.clearAll();
       chatLog.addSystem(`session ${state.currentSessionKey}`);
-      for (const entry of record.messages ?? []) {
-        if (!entry || typeof entry !== "object") {
-          continue;
-        }
-        const message = entry as Record<string, unknown>;
+      // Render messages in display order: tool results before their assistant answer.
+      // The stored order is [assistant, toolResult, toolResult, ...] but we want
+      // [toolResult, toolResult, ..., assistant] so the final answer is at the bottom.
+      const messages = (record.messages ?? []).filter(
+        (e): e is Record<string, unknown> => !!e && typeof e === "object",
+      );
+      let i = 0;
+      while (i < messages.length) {
+        const message = messages[i];
         if (isCommandMessage(message)) {
           const text = extractTextFromMessage(message);
           if (text) {
             chatLog.addSystem(text);
           }
+          i++;
           continue;
         }
         if (message.role === "user") {
@@ -316,37 +321,70 @@ export function createSessionActions(context: SessionActionContext) {
           if (text) {
             chatLog.addUser(text);
           }
+          i++;
           continue;
         }
         if (message.role === "assistant") {
+          // Look ahead for toolResult messages that follow this assistant message
+          const toolResults: Record<string, unknown>[] = [];
+          let j = i + 1;
+          while (j < messages.length && messages[j].role === "toolResult") {
+            toolResults.push(messages[j]);
+            j++;
+          }
+          // Render tool results first (above the assistant text)
+          if (showTools) {
+            for (const toolMsg of toolResults) {
+              const toolCallId = asString(toolMsg.toolCallId, "");
+              const toolName = asString(toolMsg.toolName, "tool");
+              const component = chatLog.startTool(toolCallId, toolName, {});
+              component.setResult(
+                {
+                  content: Array.isArray(toolMsg.content)
+                    ? (toolMsg.content as Record<string, unknown>[])
+                    : [],
+                  details:
+                    typeof toolMsg.details === "object" && toolMsg.details
+                      ? (toolMsg.details as Record<string, unknown>)
+                      : undefined,
+                },
+                { isError: Boolean(toolMsg.isError) },
+              );
+            }
+          }
+          // Then render the assistant text
           const text = extractTextFromMessage(message, {
             includeThinking: state.showThinking,
           });
           if (text) {
             chatLog.finalizeAssistant(text);
           }
+          i = j;
           continue;
         }
         if (message.role === "toolResult") {
-          if (!showTools) {
-            continue;
+          // Orphan tool result not preceded by an assistant message — render inline
+          if (showTools) {
+            const toolCallId = asString(message.toolCallId, "");
+            const toolName = asString(message.toolName, "tool");
+            const component = chatLog.startTool(toolCallId, toolName, {});
+            component.setResult(
+              {
+                content: Array.isArray(message.content)
+                  ? (message.content as Record<string, unknown>[])
+                  : [],
+                details:
+                  typeof message.details === "object" && message.details
+                    ? (message.details as Record<string, unknown>)
+                    : undefined,
+              },
+              { isError: Boolean(message.isError) },
+            );
           }
-          const toolCallId = asString(message.toolCallId, "");
-          const toolName = asString(message.toolName, "tool");
-          const component = chatLog.startTool(toolCallId, toolName, {});
-          component.setResult(
-            {
-              content: Array.isArray(message.content)
-                ? (message.content as Record<string, unknown>[])
-                : [],
-              details:
-                typeof message.details === "object" && message.details
-                  ? (message.details as Record<string, unknown>)
-                  : undefined,
-            },
-            { isError: Boolean(message.isError) },
-          );
+          i++;
+          continue;
         }
+        i++;
       }
       state.historyLoaded = true;
     } catch (err) {
