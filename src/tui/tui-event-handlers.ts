@@ -283,7 +283,7 @@ export function createEventHandlers(context: EventHandlerContext) {
       return;
     }
     if (evt.stream === "tool") {
-      const verbose = state.sessionInfo.verboseLevel ?? "off";
+      const verbose = state.sessionInfo.verboseLevel ?? "on";
       const allowToolEvents = verbose !== "off";
       const allowToolOutput = verbose === "full";
       if (!allowToolEvents) {

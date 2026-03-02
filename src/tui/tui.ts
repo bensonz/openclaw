@@ -752,7 +752,7 @@ export async function runTui(opts: TuiOptions) {
       : "unknown";
     const tokens = formatTokens(sessionInfo.totalTokens ?? null, sessionInfo.contextTokens ?? null);
     const think = sessionInfo.thinkingLevel ?? "off";
-    const verbose = sessionInfo.verboseLevel ?? "off";
+    const verbose = sessionInfo.verboseLevel ?? "on";
     const reasoning = sessionInfo.reasoningLevel ?? "off";
     const reasoningLabel =
       reasoning === "on" ? "reasoning" : reasoning === "stream" ? "reasoning:stream" : null;

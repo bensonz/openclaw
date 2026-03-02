@@ -291,7 +291,7 @@ export function createSessionActions(context: SessionActionContext) {
       state.currentSessionId = typeof record.sessionId === "string" ? record.sessionId : null;
       state.sessionInfo.thinkingLevel = record.thinkingLevel ?? state.sessionInfo.thinkingLevel;
       state.sessionInfo.verboseLevel = record.verboseLevel ?? state.sessionInfo.verboseLevel;
-      const showTools = (state.sessionInfo.verboseLevel ?? "off") !== "off";
+      const showTools = (state.sessionInfo.verboseLevel ?? "on") !== "off";
       chatLog.clearAll();
       chatLog.addSystem(`session ${state.currentSessionKey}`);
       // Render messages in display order: tool results before their assistant answer.
