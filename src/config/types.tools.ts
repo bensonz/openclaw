@@ -506,6 +506,14 @@ export type ToolsConfig = {
         /** Timeout in seconds for Firecrawl requests. */
         timeoutSeconds?: number;
       };
+      /** SSRF policy overrides for web fetch requests. */
+      ssrfPolicy?: {
+        allowPrivateNetwork?: boolean;
+        dangerouslyAllowPrivateNetwork?: boolean;
+        allowRfc2544BenchmarkRange?: boolean;
+        allowedHostnames?: string[];
+        hostnameAllowlist?: string[];
+      };
     };
   };
   media?: MediaToolsConfig;
